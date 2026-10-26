@@ -78,6 +78,7 @@ head(can_gas_q)
 
 can_gas_q |> autoplot(Volume)
 
+# Ploting with autoplot() 
 
 
 
