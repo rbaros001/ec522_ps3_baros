@@ -1,3 +1,4 @@
+# PART 2
 library(tidyverse)
 
 # Load in Data
@@ -14,6 +15,8 @@ retail_raw <- read_csv(
     RSAFSNA = col_double()
   )
 )
+## RSAFS seasonally adjusted 
+## RSAFSNA not seasonally adjusted 
 
 # Reshape Data
 retail_raw_long <- retail_raw |>
@@ -78,13 +81,24 @@ head(can_gas_q)
 
 can_gas_q |> autoplot(Volume)
 
-# Ploting with autoplot() 
+# Plotting with autoplot() 
+retail_ts |> autoplot(sales)
+
+# ggplot() graph
+retail_ts |>
+  autoplot(sales) +
+  labs(
+    title = "U.S. Retail and Food Services Sales",
+    subtitle = "Seasonally adjusted vs. not seasonally adjusted",
+    x = NULL, y = "Millions of dollars", color = NULL
+  ) +
+  theme_minimal()
+
+# In the series that is not seasonally adjusted, RSAFSNA, shows major spikes and drops that follow a general pattern year to year. The seasonally adjusted series removes the retail changes that occur monthly to show the true underlying trend. 
+# Over the long run, the two series follow the same path. The seasonally adjusted data has dips around 2008 and 2020 which reflect the great recession and the pandemic. The unadjusted data also follows this trend, but also shows the monthly swings.  
 
 
-
-
-
-
+# PART 3
 
 
 
