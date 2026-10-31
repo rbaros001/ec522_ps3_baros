@@ -102,10 +102,24 @@ can_gas |>
   autoplot(Volume) +
   labs(
     title = "Canadian Gas Production",
-    subtitle = "Volume of Canagian Gas Production (Jan 1960-Feb 2005)",
+    subtitle = "Volume of Canadian Gas Production (Jan 1960-Feb 2005)",
     x = NULL, y = "Volume", color = NULL
   ) +
   theme_minimal()
+
+# Scale Canadian Gas Production time series 
+can_gas |>
+  autoplot(Volume) +
+  labs(
+    title = "Log Transformation of Canadian Gas Production",
+    subtitle = "Volume of Canadian Gas Production (Jan 1960-Feb 2005)",
+    x = NULL, y = "Volume (log scale)", color = NULL
+  ) +
+  scale_y_continuous(transform = "log10") +
+  theme_minimal()
+
+## There was a log transformation taken of the Canadian gas production time series plot to show a true scale of gas production and reveal how growth has slowed over time.
+
 
 ### PART 3
 
