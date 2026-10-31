@@ -143,11 +143,12 @@ can_gas |>
 ## Taking the natural log of the can_gas time series is a good idea because without this, it appears that growth is trending upwards at the same rate. The log shows absolute change, so the logged version shows a clearer picture of how gas production has actually changed over time. This transformation shows the significant growth from the 1960s to around 1975. After this point production still grows but significantly flattens out. 
 
 retail_ts <- retail_ts |>
-  filter(series_id == "RSAFSNA") |>
   mutate(log_sales = log(sales))
 
-retail_ts |>
-  filter(series_id == "RSAFSNA") |>
+retail_nsa <- retail_ts |>
+  filter(series_id == "RSAFSNA")
+
+retail_nsa |>
   autoplot(sales) +
   labs(
     title = "U.S. Retail and Food Service Sales",
@@ -156,8 +157,7 @@ retail_ts |>
   ) +
   theme_minimal()
 
-retail_ts |>
-  filter(series_id == "RSAFSNA") |>
+retail_nsa |>
   autoplot(log_sales) +
   labs(
     title = "U.S. Retail and Food Service Sales",
@@ -168,11 +168,58 @@ retail_ts |>
 
 ## This series has a weaker case for logging compared to can_gas. The underlying trend does not have a large significant difference between the logged and the un-logged version. While using the logged version of non-seasonally adjusted sales shows the clear linear upward trend in terms of absolute change, the un-logged sales also show this same pattern. While it does have a weaker case, the logged version of sales can still give you more information about absolute change that is not as clear in the un-logged version. 
 
-## The non-seasonally adjusted data is much noisier with larger swings with the seasons in the calendar year. 
+# Growth Rates 
+can_gas <- can_gas |>
+  mutate(
+    growth_direct = 100 * difference(Volume) / lag(Volume),
+    growth_logdiff = 100 * difference(log_volume)
+  )
 
+  # Plot month over month percentage growth rate (growth_direct with autoplot())
+can_gas |>
+  autoplot(growth_direct) +
+  labs(
+    title = "Month-over-month growth rate of volume of gas",
+    subtitle = "Direct computation of volume growth rate",
+    x = NULL, y = "Volume Growth Rate", color = NULL
+  ) +
+  theme_minimal() 
 
+  # Growth gap between direct computation of growth rate and the first difference of the logged volume
+can_gas <- can_gas |>
+  mutate(
+    growth_gap = abs(growth_direct -growth_logdiff)
+  )
 
+  # Plot month over month absolute growth rate 
+can_gas |> 
+  autoplot(growth_gap) +
+  labs(
+    title = "Month-over-month Growth Gap",
+    subtitle = "Absolute difference between direct computation and logged series of gas volume",
+    x = NULL, y = "Volume Growth Rate", color = NULL
+  ) +
+  theme_minimal()
 
+## In this case, it seems as though the logged difference has some error given the large absolute differences shown in the graph.
+
+# SA vs NSA Growth Rates
+retail_ts <- retail_ts |>
+  group_by_key() |>
+  mutate(growth_mom = 100 * difference(log(sales))) |>
+  ungroup()
+
+retail_ts |>
+  autoplot(growth_mom) +
+  labs(
+    title = "Month-over-Month Growth: SA vs. NSA Retail Sales",
+    x = NULL, y = "Growth rate (%)", color = NULL
+  ) +
+  theme_minimal()
+
+## The non-seasonally adjusted series shows significantly more noise. The RSAFSNA series has much larger seasonal swings indicating more noise. The seasonally adjusted data removes these large swings to show true changes.
+
+### PART 4
 
 
 
