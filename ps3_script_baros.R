@@ -1,8 +1,8 @@
-# PART 2
+### PART 2
 library(tidyverse)
 
 # Load in Data
-retail_raw <- read.csv("data/retail_sales_raw.csv")
+retail_raw <- read_csv("data/retail_sales_raw.csv")
 
 head(retail_raw)
 
@@ -15,6 +15,7 @@ retail_raw <- read_csv(
     RSAFSNA = col_double()
   )
 )
+
 ## RSAFS seasonally adjusted 
 ## RSAFSNA not seasonally adjusted 
 
@@ -36,7 +37,6 @@ head(retail_ts)
 has_gaps(retail_ts)
 
 # Canadian gas production
-head(canadian_gas)
 
 key_vars(canadian_gas)
 index_var(canadian_gas)
@@ -84,21 +84,35 @@ can_gas_q |> autoplot(Volume)
 # Plotting with autoplot() 
 retail_ts |> autoplot(sales)
 
-# ggplot() graph
+# ggplot() graph U.S. Retail and Food Service Sales
 retail_ts |>
   autoplot(sales) +
   labs(
-    title = "U.S. Retail and Food Services Sales",
+    title = "U.S. Retail and Food Service Sales",
     subtitle = "Seasonally adjusted vs. not seasonally adjusted",
     x = NULL, y = "Millions of dollars", color = NULL
   ) +
   theme_minimal()
 
-# In the series that is not seasonally adjusted, RSAFSNA, shows major spikes and drops that follow a general pattern year to year. The seasonally adjusted series removes the retail changes that occur monthly to show the true underlying trend. 
-# Over the long run, the two series follow the same path. The seasonally adjusted data has dips around 2008 and 2020 which reflect the great recession and the pandemic. The unadjusted data also follows this trend, but also shows the monthly swings.  
+## In the series that is not seasonally adjusted, RSAFSNA, shows major spikes and drops that follow a general pattern year to year. The seasonally adjusted series removes the retail changes that occur monthly to show the true underlying trend. 
+## Over the long run, the two series follow the same path. The seasonally adjusted data has dips around 2008 and 2020 which reflect the great recession and the pandemic. The unadjusted data also follows this trend, but also shows the monthly swings.  
+
+# ggplot() Canadian gas production 
+can_gas |>
+  autoplot(Volume) +
+  labs(
+    title = "Canadian Gas Production",
+    subtitle = "Volume of Canagian Gas Production (Jan 1960-Feb 2005)",
+    x = NULL, y = "Volume", color = NULL
+  ) +
+  theme_minimal()
+
+### PART 3
 
 
-# PART 3
+
+## The non-seasonally adjusted data is much noisier with larger swings with the seasons in the calendar year. 
+
 
 
 
