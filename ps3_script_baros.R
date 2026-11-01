@@ -269,7 +269,31 @@ retail_nsa_x13 <- retail_ts |>
 retail_nsa_x13 |> autoplot()
 
 ## The seasonal factor seems to be highest in December, which tracts with the holidays being around this time. Sales at this time are roughly 10% to 20% above trend during this month. The seasonal swings appear to get somewhat smaller over time but are still present.
-## 
+
+# Compare official seasonally adjusted series by computing the percent difference between them
+sa_compare <- retail_nsa_x13 |>
+  as_tibble() |>
+  select(Month, mine = season_adjust) |>
+  left_join(
+    retail_ts |>
+      filter(series_id == "RSAFS") |>
+      as_tibble() |>
+      transmute(Month, census = sales),
+    by = "Month"
+  ) |>
+  mutate(pct_diff = 100 * (log(mine) - log(census)))
+
+  # Plot of comparison
+sa_compare |>
+  ggplot(aes(x = Month, y = pct_diff)) +
+  geom_line() +
+  labs(
+    title = "My X-13 Seasonal Adjustment Minus the Census Bureau's",
+    x = NULL, y = "Difference (%)"
+  ) +
+  theme_minimal()
+
+## The adjustment matches closely with only 4 months after 2020 that go over a 1% difference. The largest differences seem to be skewed left skewed with larger differences around 2020 and after. The differences do not follow any sort of pattern.
 
 
 
