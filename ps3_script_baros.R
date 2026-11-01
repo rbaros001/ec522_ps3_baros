@@ -295,9 +295,36 @@ sa_compare |>
 
 ## The adjustment matches closely with only 4 months after 2020 that go over a 1% difference. The largest differences seem to be skewed left skewed with larger differences around 2020 and after. The differences do not follow any sort of pattern.
 
+# Simple model of a linear trend and sesonal dummies 
+can_gas_fit <- can_gas |>
+  model(TSLM(log_volume ~ trend() + season()))
 
+report(can_gas_fit)
 
+# Include in Write-up 
+can_gas_fit |>
+  tidy() |>
+  select(term, estimate, std.error, statistic, p.value) |>
+  knitr::kable(digits = 3)
 
+seas <- coefs |> filter(str_detect(term, "season"))
+
+# Average seasonal effect across all 12 months (January = 0 by construction)
+avg_season <- sum(seas$estimate) / 12
+
+# Average level at t = 0, across all months
+coefs$estimate[coefs$term == "(Intercept)"] + avg_season
+
+## The estimated average rate of production is about -0.133 lower than that of January. The month with the largest seasonal effect is year 6 with a -4.777 t statistic.
+
+can_gas_fit |>
+  augment() |>
+  ggplot(aes(x = Month)) +
+  geom_line(aes(y = log_volume, color = "Actual")) +
+  geom_line(aes(y = .fitted, color = "Fitted")) +
+  labs(title = "Linear Trend + Seasonal Dummies Fit: Canadian Gas Production",
+       y = "log(Volume)", color = NULL) +
+  theme_minimal()
 
 
 
