@@ -1,4 +1,4 @@
-### PART 2
+### PART 2 - CLEAN AND ORGANIZE TIME-SERIES DATA
 library(tidyverse)
 
 # Load in Data
@@ -121,7 +121,7 @@ can_gas |>
   theme_minimal()
 ## A loess curve was added to the time series to show underlying trend and 0 added to the y axis.
 
-### PART 3
+### PART 3 - DATA TRANSFORMATIONS
 
 ## The seasonal swings seem to change with time periods. There is a time period around 1980 to about 1990 where there are large seasonal swings. After this period, there is still growth, and the swings are still present but not nearly as large. 
 
@@ -219,7 +219,7 @@ retail_ts |>
 
 ## The non-seasonally adjusted series shows significantly more noise. The RSAFSNA series has much larger seasonal swings indicating more noise. The seasonally adjusted data removes these large swings to show true changes.
 
-### PART 4
+### PART 4 - SEEING, DECOMPOSING, AND MODELING SEASONALITY
 
 # Seasonal Plot 
 retail_ts |>
@@ -337,6 +337,76 @@ can_gas_fit |>
   features(.innov, ljung_box, lag = 24)
 
 ##  There is visible structure to the residuals therefore, they do not look like white noise. The Ljung box test concludes that we would reject the null hypothesis at the 5% significance level.
+
+### PART 5 - FORECAST EVALUATION
+
+# Expanding-Window TS-CV
+gas_cv_fc <- can_gas |>
+  select(Month, Volume) |>
+  stretch_tsibble(.init = 240, .step = 1) |>
+  model(snaive = SNAIVE(Volume),
+        tslm   = TSLM(log(Volume) ~ trend() + season())) |>
+  forecast(h = 1)
+
+gas_cv_fc |>
+  accuracy(can_gas, measures = list(MAE = MAE, RMSE = RMSE))
+
+## The first date forecasts are evaluated is January 1980 and the last is March 2005. The snaive model is more accurate becuase it has significantly lower MAE and RMSE errors, meaning there are smaller forecast errors. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
