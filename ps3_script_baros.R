@@ -269,7 +269,7 @@ retail_nsa_x13 <- retail_ts |>
 retail_nsa_x13 |> autoplot()
 
 ## The seasonal factor seems to be highest in December, which tracts with the holidays being around this time. Sales at this time are roughly 10% to 20% above trend during this month. The seasonal swings appear to get somewhat smaller over time but are still present.
-
+## 
 
 
 
