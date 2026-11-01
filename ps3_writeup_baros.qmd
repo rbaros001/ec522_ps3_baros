@@ -11,23 +11,494 @@ execute:
   message: false 
 ---
 
-## Quarto
+**GitHub repo:** <https://github.com/rbaros001/ec522_ps3_baros>
 
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+## Time and Tsibbles 
 
-## Running Code
+### U.S. Census Bureau's Monthly Retail Trade and Food Services
 
-When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+The U.S. Census Bureau's monthly retail trade and food services data set consists of monthly sales in millions of dollars from January 1992 to January 2026. There is an analysis of two related series, the seasonally adjusted time series (series_id: RSAFS) and the not seasonally adjusted time series (series_id: RSAFSNA). This time series uses two series, so it uses a monthly index (denoted as Month) and series_id as the key variable to distinguish between the seasonally adjusted and not seasonally adjusted data.
 
-```{r}
-1 + 1
+```{r, include=FALSE, echo=FALSE, warning=FALSE}
+# setup and clean data
+library(tidyverse)
+
+retail_raw <- read_csv("data/retail_sales_raw.csv")
+
+head(retail_raw)
+
+retail_raw <- read_csv(
+  "data/retail_sales_raw.csv",
+  na = ".",
+  col_types = cols(
+    observation_date = col_date(format = "%Y-%m-%d"),
+    RSAFS = col_double(),
+    RSAFSNA = col_double()
+  )
+)
+
+## RSAFS seasonally adjusted 
+## RSAFSNA not seasonally adjusted 
+
+# Reshape Data
+retail_raw_long <- retail_raw |>
+  select(observation_date, RSAFS, RSAFSNA) |>
+  pivot_longer(cols = c(RSAFS, RSAFSNA), names_to = "series_id", values_to = "sales")
+
+library(fpp3)
+library(knitr)
+
+# Build tsibble
+retail_ts <- retail_raw_long |>
+  mutate(Month = yearmonth(observation_date)) |>
+  as_tsibble(index = Month, key = series_id)
 ```
 
-You can add options to executable code like this
+#### U.S. Census Bureau's Monthly Retail Trade and Food Service Table
 
-```{r}
-#| echo: false
-2 * 2
+```{r, echo=FALSE, warning=FALSE}
+kable(retail_ts)
 ```
 
-The `echo: false` option disables the printing of code (only output is displayed).
+#### U.S. Census Bureau's Monthly Retail Trade and Food Service Plot
+
+```{r, echo=FALSE, warning=FALSE}
+retail_ts |>
+  autoplot(sales) +
+  labs(
+    title = "U.S. Retail and Food Service Sales",
+    subtitle = "Seasonally adjusted vs. not seasonally adjusted",
+    x = NULL, y = "Millions of dollars", color = NULL
+  ) +
+  theme_minimal()
+```
+
+In the series that is not seasonally adjusted, RSAFSNA, there are major spikes and drops that follow a general pattern year to year. The seasonally adjusted series removes these reaccuring patters to show the true underlying trend.
+
+Over the long run, the two series follow the same path. The seasonally adjusted data has dips around 2008 and 2020 which reflect the great recession and the pandemic. The unadjusted data also follows this trend, but also shows the monthly swings.
+
+### Canadian Gas Production Volume
+
+The Canadian gas production time series consist of monthly natural gas production in Canada as a measure of billions of cubic meters from January 1960 to February 2005. The data set uses a monthly index (denoted as Month) with the gas production variable called Volume. There are no key variables in this data set because there is only one series.
+
+```{r, include=FALSE, echo=FALSE, warning=FALSE}
+can_gas <- canadian_gas |>
+  select(Month, Volume)
+
+# Filtering can_gas date 
+can_gas_recent <- can_gas |>
+  filter(Month >= yearmonth("1990 Jan"))
+
+# Extracting parts of a data 
+can_gas_recent <- can_gas_recent |>
+  mutate(year    = year(Month),
+         month   = month(Month, label = TRUE),
+         quarter = quarter(Month))
+
+can_gas_recent |>
+  as_tibble() |>
+  group_by(month) |>
+  summarize(avg_volume = mean(Volume)) # Seasonal Pattern 
+
+# Monthly to Quarterly Data 
+can_gas_q <- can_gas |>
+  filter(Month <= yearmonth("2004 Dec")) |>
+  index_by(Quarter = yearquarter(Month)) |>
+  summarize(Volume = sum(Volume))
+```
+
+#### Recent Canadian Gas Production from January 1990 to February 2005 Table
+
+June has the lowest average production and December has the highest.
+
+```{r, echo=FALSE, warning=FALSE}
+kable(can_gas_recent)
+```
+
+#### Quarterly Canadian Gas Production Table
+
+```{r, echo=FALSE, warning=FALSE}
+kable(can_gas_q)
+```
+
+#### Quarterly Canadian Gas Production Plot
+
+```{r, echo=FALSE, warning=FALSE}
+can_gas_q |> autoplot(Volume) + 
+  labs( 
+    title = "Quarterly Canadian Gas Production",
+    subtitle = "Canadaian Gas Production organized into 4 quarters per year",
+    x = NULL, y = "Volume", color = NULL
+    ) +
+  theme_minimal()
+```
+
+When finding the quarterly Canadian gas production, you will use the sum() function for monthly values because we are looking for cumulative totals of volume rather than a snapshot of the values which mean would give us. The quarterly series does appear to also be seasonal across quarters.
+
+#### Canadian Gas Production Table
+
+```{r, echo=FALSE, warning=FALSE}
+kable(can_gas)
+```
+
+#### Canadian Gas Production Plot
+
+```{r, echo=FALSE, warning=FALSE}
+can_gas |>
+  autoplot(Volume) +
+  labs(
+    title = "Canadian Gas Production",
+    subtitle = "Volume of Canadian Gas Production (Jan 1960-Feb 2005)",
+    x = NULL, y = "Volume", color = NULL
+  ) +
+  theme_minimal()
+```
+
+```{r, echo=FALSE, warning=FALSE}
+# Loess curve added to Canadian Gas Production time series 
+can_gas |>
+  autoplot(Volume) +
+  geom_smooth(method = "loess", span = 0.3, se = FALSE,
+              color = "firebrick", formula = y ~ x) +
+  labs(
+    title = "Canadian Gas Production",
+    subtitle = "Volume of Canadian Gas Production (Jan 1960-Feb 2005), with LOESS trend",
+    x = NULL, y = "Volume", color = NULL
+  ) +
+  scale_y_continuous(limits = c(0, NA), breaks = seq(0, 20, 5)) +
+  theme_minimal()
+```
+
+A loess curve was added to the time series to show underlying trend. On the y-axis, 0 added as well as breaks from 0 to 20 jumping by 5s.
+
+## Transformations 
+
+### U.S. Census Bureau's Monthly Retail Trade and Food Services
+
+```{r, include=FALSE, echo=FALSE, warning=FALSE}
+retail_ts <- retail_ts |>
+  mutate(log_sales = log(sales))
+
+retail_nsa <- retail_ts |>
+  filter(series_id == "RSAFSNA")
+
+# SA vs NSA Growth Rates
+retail_ts <- retail_ts |>
+  group_by_key() |>
+  mutate(growth_mom = 100 * difference(log(sales))) |>
+  ungroup()
+```
+
+```{r, echo=FALSE, warning=FALSE}
+retail_nsa |>
+  autoplot(sales) +
+  labs(
+    title = "U.S. Retail and Food Service Sales",
+    subtitle = "Not seasonally adjusted",
+    x = NULL, y = "Millions of dollars", color = NULL
+  ) +
+  theme_minimal()
+
+retail_nsa |>
+  autoplot(log_sales) +
+  labs(
+    title = "U.S. Retail and Food Service Sales",
+    subtitle = "Not seasonally adjusted",
+    x = NULL, y = "Millions of dollars", color = NULL
+  ) +
+  theme_minimal()
+```
+
+This series has a weaker case for logging compared to Canadian gas production. The underlying trend does not have a large significant difference between the logged and the un-logged version. While using the logged version of non-seasonally adjusted sales shows the clear linear upward trend in terms of absolute change, the un-logged sales also show this same pattern. While it does have a weaker case, the logged version of sales can still give you more information about absolute change that is not as clear in the un-logged version.
+
+#### Seasonally Adjusted and Non-Seasonally Adjusted Growth Rates Plot
+
+```{r, echo=FALSE, warning=FALSE}
+retail_ts |>
+  autoplot(growth_mom) +
+  labs(
+    title = "Month-over-Month Growth: SA vs. NSA Retail Sales",
+    x = NULL, y = "Growth rate (%)", color = NULL
+  ) +
+  theme_minimal()
+```
+
+The non-seasonally adjusted series shows significantly more noise. The RSAFSNA series has much larger seasonal swings indicating more noise. The seasonally adjusted data removes these large swings to show true changes.
+
+### Canadian Gas Production
+
+The seasonal swings seem to change with time. There is a time period around 1980 to about 1990 where there are large seasonal swings. After this period, there is still growth, and the swings are still present but not nearly as large.
+
+```{r, include=FALSE, echo=FALSE, warning=FALSE}
+can_gas <- can_gas |>
+  mutate(log_volume = log(Volume))
+
+# Growth Rates 
+can_gas <- can_gas |>
+  mutate(
+    growth_direct = 100 * difference(Volume) / lag(Volume),
+    growth_logdiff = 100 * difference(log_volume)
+  )
+
+can_gas <- can_gas |>
+  mutate(
+    growth_gap = abs(growth_direct -growth_logdiff)
+  )
+```
+
+#### Logged Canadian Gas Production
+
+```{r, echo=FALSE, warning=FALSE}
+can_gas |>
+  autoplot(log_volume) +
+  labs(
+    title = "Scaled Canadian Gas Production",
+    subtitle = "Logged scale of Volume of Canadian Gas Production (Jan 1960-Feb 2005)",
+    x = NULL, y = "Volume (Log Scale)", color = NULL
+  ) +
+  theme_minimal()
+```
+
+The log transformation taken of the Canadian gas production time series plot to show a true scale of gas production and reveal how growth has slowed over time.
+
+Taking the natural log of the can_gas time series is a good idea because without this, it appears that growth is trending upwards at the same rate. The log shows absolute change, so the logged version shows a clearer picture of how gas production has actually changed over time. This transformation shows the significant growth from the 1960s to around 1975. After this point production still grows but significantly flattens out.
+
+#### Month-Over-Month Growth Rate Plot
+
+```{r, echo=FALSE, warning=FALSE}
+can_gas |>
+  autoplot(growth_direct) +
+  labs(
+    title = "Month-over-month growth rate of volume of gas",
+    subtitle = "Direct computation of volume growth rate",
+    x = NULL, y = "Volume Growth Rate", color = NULL
+  ) +
+  theme_minimal() 
+```
+
+#### Month-Over-Month Growth Gap Plot
+
+```{r, echo=FALSE, warning=FALSE}
+can_gas |> 
+  autoplot(growth_gap) +
+  labs(
+    title = "Month-over-month Growth Gap",
+    subtitle = "Absolute difference between direct computation and logged series of gas volume",
+    x = NULL, y = "Volume Growth Rate", color = NULL
+  ) +
+  theme_minimal()
+```
+
+In this case, it seems as though the logged difference has some error, but there aren't any significantly large differences shown in the graph.
+
+## Seasonality 
+
+### U.S. Census Bureau's Monthly Retail Trade and Food Services
+
+```{r, echo=FALSE, warning=FALSE}
+retail_ts |>
+  filter(series_id == "RSAFSNA") |>
+  gg_season(sales) +
+  labs(
+    title = "Seasonal Pattern in NSA Retail Sales",
+    y = "Millions of dollars"
+  ) +
+  theme_minimal() # NSA 
+
+retail_ts |>
+  filter(series_id == "RSAFS") |>
+  gg_season(sales) +
+  labs(
+    title = "Seasonal Pattern in SA Retail Sales",
+    y = "Millions of dollars"
+  ) +
+  theme_minimal() # SA
+```
+
+```{r, include=FALSE, echo=FALSE, warning=FALSE}
+# Seasonally Adjusting a Series with X-13ARIMA-SEATS
+library(seasonal)
+
+retail_nsa_x13 <- retail_ts |>
+  filter(series_id == "RSAFSNA") |>
+  model(x13 = X_13ARIMA_SEATS(sales)) |>
+  components()
+```
+
+#### X-13ARIMA-SEATS DECOMPOSITION
+
+The seasonal factor seems to be highest in December, which tracts with the holidays being around this time. Sales at this time are roughly 10% to 20% above trend during this month. The seasonal swings appear to get somewhat smaller over time but are still present.
+
+```{r, echo=FALSE, warning=FALSE}
+retail_nsa_x13 |> autoplot()
+kable(retail_nsa_x13)
+```
+
+```{r, include=FALSE, echo=FALSE, warning=FALSE}
+sa_compare <- retail_nsa_x13 |>
+  as_tibble() |>
+  select(Month, mine = season_adjust) |>
+  left_join(
+    retail_ts |>
+      filter(series_id == "RSAFS") |>
+      as_tibble() |>
+      transmute(Month, census = sales),
+    by = "Month"
+  ) |>
+  mutate(pct_diff = 100 * (log(mine) - log(census)))
+```
+
+#### Comparison of Official Seasonally Adjusted Series
+
+```{r, echo=FALSE, warning=FALSE}
+kable(sa_compare)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+sa_compare |>
+  ggplot(aes(x = Month, y = pct_diff)) +
+  geom_line() +
+  labs(
+    title = "My X-13 Seasonal Adjustment Minus the Census Bureau's",
+    x = NULL, y = "Difference (%)"
+  ) +
+  theme_minimal()
+```
+
+The adjustment matches closely with only 4 months after 2020 that go over a 1% difference. The largest differences seem to be skewed left skewed with larger differences around 2020 and after. The differences do not follow any sort of pattern.
+
+### Canadian Gas Production
+
+```{r, echo=FALSE, warning=FALSE}
+can_gas |>
+  gg_season(log_volume) +
+  labs(
+    title = "Seasonal Pattern in Logged Volume",
+    y = "Volume"
+  ) +
+  theme_minimal()
+```
+
+The months that tend to be higher in colder months, October to March, and lower in warmer months, April to September. This makes sense because people may be using extra gas to heat their homes in colder weather.
+
+#### Subbseries Plot 
+
+```{r, echo=FALSE, warning=FALSE}
+can_gas |>
+  gg_subseries(log_volume) +
+  labs(
+    title = "Subbseries Plot: Canadian Gas Production",
+    y = "log(Volume)"
+  )
+```
+
+#### Simple Model of a Linear Trend and Seasonal Dummy
+
+```{r, include=FALSE, echo=FALSE, warning=FALSE}
+# Simple model of a linear trend and seasonal dummies 
+can_gas_fit <- can_gas |>
+  model(TSLM(log_volume ~ trend() + season()))
+```
+
+```{r, echo=FALSE, warning=FALSE}
+can_gas_fit |>
+  augment() |>
+  ggplot(aes(x = Month)) +
+  geom_line(aes(y = log_volume, color = "Actual")) +
+  geom_line(aes(y = .fitted, color = "Fitted")) +
+  labs(title = "Linear Trend + Seasonal Dummies Fit: Canadian Gas Production",
+       y = "log(Volume)", color = NULL) +
+  theme_minimal()
+```
+
+The linear model tracts the actual series somewhat accurately from 1980 to about 2000 with some differences in seasonal swing magnitude. The linear model misses significantly from 1960 to 1980 and over forecasts after 2000.
+
+```{r, echo=FALSE, warning=FALSE}
+can_gas_fit |>
+  tidy() |>
+  select(term, estimate, std.error, statistic, p.value) |>
+  knitr::kable(digits = 3)
+```
+
+The estimated average rate of production is about -0.133 lower than that of January. The month with the largest seasonal effect is year 6 with a -4.777 t statistic.
+
+```{r, echo=FALSE, warning=FALSE}
+can_gas_fit |> gg_tsresiduals()
+
+can_gas_fit |>
+  augment() |>
+  features(.innov, ljung_box, lag = 24)
+```
+
+There is visible structure to the residuals therefore, they do not look like white noise. The Ljung box test concludes that we would reject the null hypothesis at the 5% significance level.
+
+## Forecast Evaluation 
+
+### Canadian Gas Production 
+
+#### Expanding Window Forecast
+
+The first date forecasts are start with using January 1980 for the training sample for SNAIVE and TSLM models and creates a one month ahead forecast for March 2005. The snaive model is more accurate because it has significantly lower MAE and RMSE errors, meaning there are smaller forecast errors. The TSLM model seems to produce higher metrics and while the metrics are not far off from each other, they do not agree. For the snaive model, the MAE statistic is 0.562 and the RMSE statistic is 0.702. For the TSLM model, the MAE statistic is 4.01 and the RMSE statistic is 4.36.
+
+```{r, include=FALSE, echo=FALSE, warning=FALSE}
+# Expanding-Window TS-CV
+gas_cv_fc1 <- can_gas |>
+  select(Month, Volume) |>
+  stretch_tsibble(.init = 240, .step = 1) |>
+  model(snaive = SNAIVE(Volume),
+        tslm   = TSLM(log(Volume) ~ trend() + season())) |>
+  forecast(h = 1)
+
+gas_cv_fc1 |>
+  accuracy(can_gas, measures = list(MAE = MAE, RMSE = RMSE))
+```
+
+```{r, echo=FALSE, warning=FALSE}
+kable(gas_cv_fc1)
+```
+
+#### Diebold-Mariano Test
+
+```{r, include=FALSE, echo=FALSE, warning=FALSE}
+# Diebold-Mariano Test (absolute loss power = 1)
+errs <- gas_cv_fc1 |>
+  as_tibble() |>
+  left_join(as_tibble(can_gas) |> select(Month, actual = Volume),
+            by = "Month") |>
+  mutate(e = actual - .mean) |>
+  select(Month, .model, e) |>
+  pivot_wider(names_from = .model, values_from = e) |>
+  na.omit()
+```
+
+```{r, echo=FALSE, warning=FALSE}
+kable(errs)
+forecast::dm.test(errs$snaive, errs$tslm, h = 1, power = 1)
+```
+
+#### Rolling Window Forecast
+
+The TSLM model accuracy changed the most because the rolling window gets rid of old data so that forecasts are using relevant data. Removing the old data removes noise from the forecasts which is seen with the decrease in the errors from TSLM. For the snaive model, the MAE statistic is 0.562 and the RMSE statistic is 0.702. For the TSLM model, the MAE statistic is 2.09 and the RMSE statistic is 2.42
+
+```{r, include=FALSE, echo=FALSE, warning=FALSE}
+# Rolling Window 
+gas_cv_fc2 <- can_gas |>
+  select(Month, Volume) |>
+  slide_tsibble(.size = 240, .step = 1) |>
+  model(snaive = SNAIVE(Volume),
+        tslm   = TSLM(log(Volume) ~ trend() + season())) |>
+  forecast(h = 1)
+
+gas_cv_fc2 |>
+  accuracy(can_gas, measures = list(MAE = MAE, RMSE = RMSE))
+```
+
+```{r, echo=FALSE, warning=FALSE}
+kable(gas_cv_fc2)
+```
+
+## Reflection 
+
+From the residual check, it is clear that the model is misspecified slightly because of the trend being off. The simple trend and seasonal model was doesn't readjust when there are visible changes in the data which is reflected in the residuals.
+
+A method that could be used to adjust for these gaps is a exponential smoothing model that captures level, trend, and seasonal patterns. This type of model uses weighted averages of past observations which are constantly being updated as new observations arrive. This would make the changes with season more accurate.

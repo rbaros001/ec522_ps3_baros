@@ -79,7 +79,15 @@ can_gas_q <- can_gas |>
 
 head(can_gas_q)
 
-can_gas_q |> autoplot(Volume)
+can_gas_q |> autoplot(Volume) + 
+  labs( 
+    title = "Quarterly Canadian Gas Production",
+    subtitle = "Canadaian Gas Production organized into 4 quarters per year",
+    x = NULL, y = "Volume", color = NULL
+  ) +
+  theme_minimal()
+
+## You will use the sum() function for monthly values because we are looking for cumulative totals of volume rather than a snapshot of the values which mean would give us. The quarterly series does appear to be seasonal across quarters.
 
 # Plotting with autoplot() 
 retail_ts |> autoplot(sales)
@@ -201,7 +209,7 @@ can_gas |>
   ) +
   theme_minimal()
 
-## In this case, it seems as though the logged difference has some error given the large absolute differences shown in the graph.
+## In this case, it seems as though the logged difference has some error, but there aren't any significantly large differences shown in the graph.
 
 # SA vs NSA Growth Rates
 retail_ts <- retail_ts |>
@@ -356,7 +364,7 @@ gas_cv_fc1 |>
 ## For the TSLM model, the MAE statistic is 4.01 and the RMSE statistic is 4.36
 
 # Diebold-Mariano Test (absolute loss power = 1)
-errs <- gas_cv_fc |>
+errs <- gas_cv_fc1 |>
   as_tibble() |>
   left_join(as_tibble(can_gas) |> select(Month, actual = Volume),
             by = "Month") |>
@@ -381,59 +389,3 @@ gas_cv_fc2 |>
 ## The TSLM model accuracy changed the most becasue the rolling window gets rid of old data so that forecasts are using relevant data. Removing the old data removes noise from the forecasts which is seen with the decrease in the errors from TSLM. 
 ## For the snaive model, the MAE statistic is 0.562 and the RMSE statistic is 0.702
 ## For the TSLM model, the MAE statistic is 2.09 and the RMSE statistic is 2.42
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
