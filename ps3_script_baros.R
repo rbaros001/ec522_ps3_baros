@@ -341,22 +341,46 @@ can_gas_fit |>
 ### PART 5 - FORECAST EVALUATION
 
 # Expanding-Window TS-CV
-gas_cv_fc <- can_gas |>
+gas_cv_fc1 <- can_gas |>
   select(Month, Volume) |>
   stretch_tsibble(.init = 240, .step = 1) |>
   model(snaive = SNAIVE(Volume),
         tslm   = TSLM(log(Volume) ~ trend() + season())) |>
   forecast(h = 1)
 
-gas_cv_fc |>
+gas_cv_fc1 |>
   accuracy(can_gas, measures = list(MAE = MAE, RMSE = RMSE))
 
-## The first date forecasts are evaluated is January 1980 and the last is March 2005. The snaive model is more accurate becuase it has significantly lower MAE and RMSE errors, meaning there are smaller forecast errors. 
+## The first date forecasts are start with using January 1980 for the training sample for SNAIVE and TSLM models and creates a one month ahead forecast for March 2005. The snaive model is more accurate because it has significantly lower MAE and RMSE errors, meaning there are smaller forecast errors. The TSLM model seems to produce higher metrics and while the metrics are not far off from each other, they do not agree.
+## For the snaive model, the MAE statistic is 0.562 and the RMSE statistic is 0.702
+## For the TSLM model, the MAE statistic is 4.01 and the RMSE statistic is 4.36
 
+# Diebold-Mariano Test (absolute loss power = 1)
+errs <- gas_cv_fc |>
+  as_tibble() |>
+  left_join(as_tibble(can_gas) |> select(Month, actual = Volume),
+            by = "Month") |>
+  mutate(e = actual - .mean) |>
+  select(Month, .model, e) |>
+  pivot_wider(names_from = .model, values_from = e) |>
+  na.omit()
 
+forecast::dm.test(errs$snaive, errs$tslm, h = 1, power = 1)
 
+# Rolling Window 
+gas_cv_fc2 <- can_gas |>
+  select(Month, Volume) |>
+  slide_tsibble(.size = 240, .step = 1) |>
+  model(snaive = SNAIVE(Volume),
+        tslm   = TSLM(log(Volume) ~ trend() + season())) |>
+  forecast(h = 1)
 
+gas_cv_fc2 |>
+  accuracy(can_gas, measures = list(MAE = MAE, RMSE = RMSE))
 
+## The TSLM model accuracy changed the most becasue the rolling window gets rid of old data so that forecasts are using relevant data. Removing the old data removes noise from the forecasts which is seen with the decrease in the errors from TSLM. 
+## For the snaive model, the MAE statistic is 0.562 and the RMSE statistic is 0.702
+## For the TSLM model, the MAE statistic is 2.09 and the RMSE statistic is 2.42
 
 
 
