@@ -295,7 +295,7 @@ sa_compare |>
 
 ## The adjustment matches closely with only 4 months after 2020 that go over a 1% difference. The largest differences seem to be skewed left skewed with larger differences around 2020 and after. The differences do not follow any sort of pattern.
 
-# Simple model of a linear trend and sesonal dummies 
+# Simple model of a linear trend and seasonal dummies 
 can_gas_fit <- can_gas |>
   model(TSLM(log_volume ~ trend() + season()))
 
@@ -317,6 +317,7 @@ coefs$estimate[coefs$term == "(Intercept)"] + avg_season
 
 ## The estimated average rate of production is about -0.133 lower than that of January. The month with the largest seasonal effect is year 6 with a -4.777 t statistic.
 
+# Plot of Simple model of a linear trend and seasonal dummies 
 can_gas_fit |>
   augment() |>
   ggplot(aes(x = Month)) +
@@ -326,6 +327,7 @@ can_gas_fit |>
        y = "log(Volume)", color = NULL) +
   theme_minimal()
 
+## The linear model tracts the actual series somewhat accurately from 1980 to about 2000 with some differences in seasonal swing magnitude. The linear model misses significantly from 1960 to 1980 and over forecasts after 2000.
 
 
 
