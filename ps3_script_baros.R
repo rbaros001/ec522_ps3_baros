@@ -221,6 +221,65 @@ retail_ts |>
 
 ### PART 4
 
+# Seasonal Plot 
+retail_ts |>
+  filter(series_id == "RSAFSNA") |>
+  gg_season(sales) +
+  labs(
+    title = "Seasonal Pattern in NSA Retail Sales",
+    y = "Millions of dollars"
+  ) +
+  theme_minimal() # NSA 
+
+retail_ts |>
+  filter(series_id == "RSAFS") |>
+  gg_season(sales) +
+  labs(
+    title = "Seasonal Pattern in SA Retail Sales",
+    y = "Millions of dollars"
+  ) +
+  theme_minimal() # SA
+
+can_gas |>
+  gg_season(log_volume) +
+  labs(
+    title = "Seasonal Pattern in Logged Volume",
+    y = "Volume"
+  ) +
+  theme_minimal()
+
+## The months that tend to be higher in colder months, October to March, and lower in warmer months, April to September. This makes sense because people may be using extra gas to heat their homes in colder weather.
+
+
+can_gas |>
+  gg_subseries(log_volume) +
+  labs(
+    title = "Subseries Plot: Canadian Gas Production",
+    y = "log(Volume)"
+  )
+
+# Seasonally Adjusting a Series with X-13ARIMA-SEATS
+library(seasonal)
+
+retail_nsa_x13 <- retail_ts |>
+  filter(series_id == "RSAFSNA") |>
+  model(x13 = X_13ARIMA_SEATS(sales)) |>
+  components()
+
+retail_nsa_x13 |> autoplot()
+
+## The seasonal factor seems to be highest in December, which tracts with the holidays being around this time. Sales at this time are roughly 10% to 20% above trend during this month. The seasonal swings appear to get somewhat smaller over time but are still present.
+
+
+
+
+
+
+
+
+
+
+
 
 
 
