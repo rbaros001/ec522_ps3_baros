@@ -329,9 +329,14 @@ can_gas_fit |>
 
 ## The linear model tracts the actual series somewhat accurately from 1980 to about 2000 with some differences in seasonal swing magnitude. The linear model misses significantly from 1960 to 1980 and over forecasts after 2000.
 
+# Check for White noise
+can_gas_fit |> gg_tsresiduals()
 
+can_gas_fit |>
+  augment() |>
+  features(.innov, ljung_box, lag = 24)
 
-
+##  There is visible structure to the residuals therefore, they do not look like white noise. The Ljung box test concludes that we would reject the null hypothesis at the 5% significance level.
 
 
 
